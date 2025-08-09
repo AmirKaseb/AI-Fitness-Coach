@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Response, request, redirect
+from flask import Flask, render_template, Response, request, redirect, url_for
 from pose_left import left_curl
 from pose_right import right_curl
 from pose_pushup import pushup
@@ -9,11 +9,15 @@ import numpy as np
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
-@app.route('/api', methods = ['GET'])
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+@app.route('/api', methods=['GET'])
 def index():
-    return render_template('request_page.html')
+    return redirect(url_for('home'))
 
 @app.route('/video_feed_left')
 def video_feed_left():
@@ -37,8 +41,11 @@ def video_feed_squat():
 
 @app.route('/show')
 def show():
-    subject = request.args.get('sub')
+    subject = request.args.get('sub', '').strip().lower()
+    allowed = {'left', 'right', 'pushup', 'squat'}
+    if subject not in allowed:
+        return redirect(url_for('home'))
     return redirect(f'/video_feed_{subject}')
 
 if __name__ == '__main__':
-    app.run(host = "0.0.0.0" , debug=False)
+    app.run(host="0.0.0.0", debug=False)

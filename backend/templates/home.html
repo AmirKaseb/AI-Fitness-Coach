@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymJam AI Fitness Coach</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <header class="header">
+    <h1>GymJam AI Fitness Coach</h1>
+  </header>
+
+  <main class="main">
+    <section class="controls">
+      <button class="btn" data-stream="left">Left Curl</button>
+      <button class="btn" data-stream="right">Right Curl</button>
+      <button class="btn" data-stream="pushup">Push-up</button>
+      <button class="btn" data-stream="squat">Squat</button>
+      <button class="btn btn-secondary" id="stop">Stop</button>
+    </section>
+
+    <section class="viewer">
+      <div class="video-frame">
+        <img id="stream" alt="Live stream will appear here" />
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const img = document.getElementById('stream');
+    document.querySelectorAll('[data-stream]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const type = btn.dataset.stream;
+        img.src = `/video_feed_${type}`;
+      });
+    });
+    document.getElementById('stop').addEventListener('click', () => {
+      img.src = '';
+    });
+  </script>
+</body>
+</html> 

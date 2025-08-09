@@ -1,54 +1,33 @@
-<img src="/assets/app.logomakr.com28ja6E-ezgif.com-crop.gif" style="width: 1000px;">
-
-<div style="display: flex; justify-content: center;">
-  <img src="assets/combo.jpg" alt="Squats" style="width: 100%; height: auto; margin-right: 5px;">
-</div>
-
-## Project Overview
-
-Welcome to GymJam, a cutting-edge web application designed to enhance your fitness journey and help you achieve your fitness goals. It is your comprehensive companion, providing a diverse range of exercises tailored to target different body parts. With an intuitive user interface and a library of exercise variations, an immersive fitness experience that caters to users of all levels.
-
-## Getting Started
-
-### Prerequisites
-
-1. Backend Framework: python >= 3.9, flask, mediapipe
-   - Other Software Dependencies: Package managers (e.g. pip), version control system (e.g. Git)
-
-2. Client-Side:
-   - Operating System: Windows, macOS, or Linux
-   - Web Browser: Google Chrome, Mozilla Firefox, Safari, Microsoft Edge, or equivalent
-   - Browser Plugins: JavaScript enabled, support for HTML5 and CSS3
-   - Internet Connectivity: Broadband or high-speed internet connection
-
-
 ### Installation
 
 1. Clone the repository:
 
    ```bash
-   https://github.com/Sovik-Ghosh/GymJam-AI-assistant-using-mediapipe.git
+   git clone https://github.com/Sovik-Ghosh/GymJam-AI-assistant-using-mediapipe.git
    ```
 
 2. Navigate to the project directory:
 
    ```bash
-   cd backend
+   cd GymJam-AI-assistant-using-mediapipe/backend
    ```
 
 3. Create a virtual environment:
-    ```bash
-    python3 -m venv my_env
-    ```
+   ```bash
+   python3 -m venv my_env
+   ```
 
 4. Activate the virtual environment:
-    ```bash
-    source my_env/bin/activate
-    ```
-
-5. Install dependencies (if any) and set up your development environment.
    ```bash
-   pip3 -r requirements.txt
+   # macOS/Linux
+   source my_env/bin/activate
+   # Windows PowerShell
+   my_env\\Scripts\\Activate.ps1
+   ```
+
+5. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
    ```
 ## Framework
 
@@ -58,40 +37,25 @@ Welcome to GymJam, a cutting-edge web application designed to enhance your fitne
 
 MediaPipe is an open-source framework developed by Google that provides a comprehensive solution for building machine learning (ML) pipelines to process multimedia data, including video, audio, and image streams. It is designed to facilitate the development of real-time perception and processing pipelines, particularly for tasks related to computer vision and media processing.
 
-## Running the Simulation
+## Running the App
 
-1. Go to backend directory
+1. Start the Flask server from the `backend` directory:
+   ```bash
+   python app.py
+   ```
+2. Open your browser to:
+   ```
+   http://localhost:5000/
+   ```
+3. Use the buttons to start a stream (Left Curl, Right Curl, Push-up, Squat). Click Stop to end the stream.
 
-2. Activate the virtual environment:
-    ```bash
-    source my_env/bin/activate
-    ```
-    
+Direct stream URLs (optional):
+- Left Bicep Curl: `http://localhost:5000/video_feed_left`
+- Right Bicep Curl: `http://localhost:5000/video_feed_right`
+- Pushup: `http://localhost:5000/video_feed_pushup`
+- Squat: `http://localhost:5000/video_feed_squat`
 
-3. Run the code:
-    ```bash
-    python app.py
-    ```
-
-4. Copy and paste anyone of the url in a browser.
-    - Left Bicep Curl:
-        ```
-        http://localhost:5000/video_feed_left
-        ```
-    - Right Bicep Curl:
-        ```
-        http://localhost:5000/video_feed_right
-        ```
-    - Pushup:
-        ```
-        http://localhost:5000/video_feed_pushup
-        ```
-    - Squat:
-        ```
-        http://localhost:5000/video_feed_squat
-        ```
-
-5. Observe and follow the instructions on the browser for the correct form of exercise.
+Note: Camera access requires running locally. Most cloud hosts do not expose a physical webcam device.
 
 ## Exercise Overview
 
@@ -106,7 +70,7 @@ Feel free to customize the project to implement your strategies and behaviors fo
 
 You can modify the existing controllers or create new ones.
 1. [PoseModule.py](backend/PoseModule.py) is the base file containing different functions for calculating angle, tracking position, capturing video feed.
-2. [app.py](backend/app.py) uses flask to render captured webcame frames to webpage
+2. [app.py](backend/app.py) uses Flask to render captured webcam frames to the webpage
 3. [pose_left.py](backend/pose_left.py) calculates and corrects left arm bicep curl
 4. [pose_right.py](backend/pose_right.py) calculates and corrects right arm bicep curl
 5. [pose_pushup.py](backend/pose_pushup.py) calculates and corrects pushup using coordinates from the left side
@@ -114,9 +78,12 @@ You can modify the existing controllers or create new ones.
 
 Additionally, you can explore advanced features provided by [Mediapipe](https://developers.google.com/mediapipe).
 
-## Contributing
+## Deployment
 
-If you would like to contribute to this project, please follow our [contribution guidelines](CONTRIBUTING.md). We welcome bug reports, feature requests, and pull requests.
+- A `procfile.txt` is included with a `gunicorn` command (`web: gunicorn app:app`). This is only suitable when a physical camera is available to the host. For local production-like runs, install requirements and run:
+  ```bash
+  gunicorn -w 1 -b 0.0.0.0:5000 app:app
+  ```
 
 ## License
 
