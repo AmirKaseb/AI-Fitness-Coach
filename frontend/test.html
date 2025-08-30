@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .hidden { display: none !important; }
+        button { padding: 10px 20px; margin: 10px; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Simple Test Page</h1>
+    
+    <div id="landing-page">
+        <h2>Landing Page</h2>
+        <button onclick="showSignUp()">Show Sign Up</button>
+        <button onclick="showLogIn()">Show Log In</button>
+    </div>
+    
+    <div id="signup-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Sign Up Modal</h3>
+            <p>This is the sign up modal</p>
+            <button onclick="hideModals()">Close</button>
+        </div>
+    </div>
+    
+    <div id="login-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3>Log In Modal</h3>
+            <p>This is the log in modal</p>
+            <button onclick="hideModals()">Close</button>
+        </div>
+    </div>
+    
+    <script>
+        function showSignUp() {
+            document.getElementById('landing-page').classList.add('hidden');
+            document.getElementById('signup-modal').classList.remove('hidden');
+        }
+        
+        function showLogIn() {
+            document.getElementById('landing-page').classList.add('hidden');
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+        
+        function hideModals() {
+            document.getElementById('landing-page').classList.remove('hidden');
+            document.getElementById('signup-modal').classList.add('hidden');
+            document.getElementById('login-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

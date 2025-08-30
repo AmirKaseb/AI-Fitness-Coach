@@ -3,17 +3,503 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ai Fitness Coach</title>
+    <title>AI Powered Coach - Smart Fitness Coaching</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
 </head>
 <body>
-    <h1>Ai Fitness Coach</h1>
-    <div class="container">
-        <div class="left-container">
-            <h2>Left Curl</h2>
-        </div>
-        <div class="right-container"></div>
+    <!-- Landing Page -->
+    <div id="landing-page" class="landing-page">
 
+        <!-- Navigation -->
+        <nav class="nav-bar">
+            <div class="nav-links">
+                <a href="#" class="nav-link active">Home</a>
+                <a href="#" class="nav-link" onclick="showSignUp()">Sign Up</a>
+                <a href="#" class="nav-link" onclick="showLogIn()">Log In</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">AI Powered Coach</h1>
+                <p class="hero-subtitle">Smart coach with real-time feedback</p>
+                <button class="cta-button" onclick="showSignUp()">Get Started</button>
+            </div>
+        </div>
+
+        <!-- Logo -->
+        <div class="brand-logo">
+            <div class="logo-text">AI Powered Coach</div>
+            <div class="logo-icon">
+                <div class="logo-rings">
+                    <div class="ring ring-1"></div>
+                    <div class="ring ring-2"></div>
+                    <div class="ring ring-3"></div>
+                </div>
+                <div class="logo-triangle"></div>
+            </div>
+        </div>
     </div>
+
+    <!-- Sign Up Modal -->
+    <div id="signup-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="back-button" onclick="hideModals()">
+                    <i class="fas fa-chevron-left"></i> Back
+                </button>
+                <h2>Sign Up</h2>
+                <div class="brand-logo-small">
+                    <div class="logo-text">AI Powered Coach</div>
+                    <div class="logo-icon-small">
+                        <div class="logo-rings-small">
+                            <div class="ring-small ring-1-small"></div>
+                            <div class="ring-small ring-2-small"></div>
+                            <div class="ring-small ring-3-small"></div>
+                        </div>
+                        <div class="logo-triangle-small"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-navigation">
+                <button class="tab-button active" onclick="switchTab('signup')">Sign Up</button>
+                <button class="tab-button" onclick="switchTab('login')">Log In</button>
+            </div>
+
+            <form id="signup-form" class="auth-form">
+                <div class="form-group">
+                    <label for="fullname">Full Name</label>
+                    <input type="text" id="fullname" name="fullname" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" name="confirm-password" required>
+                </div>
+                <p class="password-requirement">Password must be at least 8 characters</p>
+                <button type="submit" class="submit-button">Sign Up</button>
+            </form>
+
+            <p class="auth-switch">Already have an account? <a href="#" onclick="switchTab('login')">Log in</a></p>
+        </div>
+    </div>
+
+    <!-- Log In Modal -->
+    <div id="login-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="back-button" onclick="hideModals()">
+                    <i class="fas fa-chevron-left"></i> Back
+                </button>
+                <h2>Log In</h2>
+                <div class="brand-logo-small">
+                    <div class="logo-text">AI Powered Coach</div>
+                    <div class="logo-icon-small">
+                        <div class="logo-rings-small">
+                            <div class="ring-small ring-1-small"></div>
+                            <div class="ring-small ring-2-small"></div>
+                            <div class="ring-small ring-3-small"></div>
+                        </div>
+                        <div class="logo-triangle-small"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-navigation">
+                <button class="tab-button" onclick="switchTab('signup')">Sign Up</button>
+                <button class="tab-button active" onclick="switchTab('login')">Log In</button>
+            </div>
+
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" name="password" required>
+                </div>
+                <div class="forgot-password">
+                    <a href="#">Forgot Password?</a>
+                </div>
+                <button type="submit" class="submit-button">Log In</button>
+            </form>
+
+            <div class="divider">
+                <span>or</span>
+            </div>
+
+            <button class="google-button">
+                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" class="google-icon">
+                continue with Google
+            </button>
+
+            <p class="auth-switch">Don't have an account? <a href="#" onclick="switchTab('signup')">Sign up</a></p>
+        </div>
+    </div>
+
+    <!-- Profile Setup Modal -->
+    <div id="profile-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="back-button" onclick="hideModals()">
+                    <i class="fas fa-chevron-left"></i> Back
+                </button>
+                <h2>Set up your profile</h2>
+                <div class="brand-logo-small">
+                    <div class="logo-text">AI Powered Coach</div>
+                    <div class="logo-icon-small">
+                        <div class="logo-rings-small">
+                            <div class="ring-small ring-1-small"></div>
+                            <div class="ring-small ring-2-small"></div>
+                            <div class="ring-small ring-3-small"></div>
+                        </div>
+                        <div class="logo-triangle-small"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-picture-section">
+                <div class="profile-picture-placeholder">
+                    <i class="fas fa-camera"></i>
+                </div>
+                <p>Set profile picture</p>
+            </div>
+
+            <form id="profile-form" class="auth-form">
+                <div class="form-group">
+                    <label for="birthdate">Enter birth date</label>
+                    <input type="text" id="birthdate" name="birthdate" placeholder="MM/DD/YYYY" required>
+                </div>
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="gender">Gender</label>
+                    <select id="gender" name="gender" required>
+                        <option value="">Select</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <button type="submit" class="submit-button">Continue</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App (Hidden initially) -->
+    <div id="main-app" class="main-app hidden">
+        <!-- Navigation Bar -->
+        <nav class="app-nav">
+            <div class="nav-links">
+                <a href="#" class="nav-link active" onclick="showSection('home')">Home</a>
+                <span class="nav-separator">|</span>
+                <a href="#" class="nav-link" onclick="showSection('goals')">Goals</a>
+                <span class="nav-separator">|</span>
+                <a href="#" class="nav-link" onclick="showSection('workout-library')">Workout Library</a>
+                <span class="nav-separator">|</span>
+                <a href="#" class="nav-link" onclick="showSection('profile')">Profile</a>
+                <span class="nav-separator">|</span>
+                <a href="#" class="nav-link" onclick="showSection('settings')">Settings</a>
+                <span class="nav-separator">|</span>
+                <a href="#" class="nav-link" onclick="showSection('more')">More..</a>
+                <span class="nav-separator">|</span>
+                                 <a href="#" class="nav-link" onclick="showSection('workout')">Workout</a>
+                 <span class="nav-separator">|</span>
+                 <a href="#" class="nav-link" onclick="aiCoach.logOut()">Logout</a>
+            </div>
+            <div class="brand-logo-app">
+                <div class="logo-text">AI Powered Coach</div>
+                <div class="logo-icon-app">
+                    <div class="logo-rings-app">
+                        <div class="ring-app ring-1-app"></div>
+                        <div class="ring-app ring-2-app"></div>
+                        <div class="ring-app ring-3-app"></div>
+                    </div>
+                    <div class="logo-triangle-app"></div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Home Section -->
+        <section id="home-section" class="app-section">
+            <div class="home-content">
+                <div class="greeting-section">
+                    <h1 class="greeting">Good morning!</h1>
+                    <button class="start-session-btn" onclick="startWorkoutFlow()">Start Session</button>
+                </div>
+                <div class="reminders-box">
+                    <h3>Reminders</h3>
+                    <p>You'll receive workout reminders via email to stay on track.</p>
+                </div>
+            </div>
+
+            <div class="previous-sessions">
+                <h2>Previous Sessions</h2>
+                <div class="charts-container">
+                    <div class="chart">
+                        <h3>Score (Pose Accuracy)</h3>
+                        <div class="chart-bars">
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 90%"></div>
+                                <span>Sun</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 50%"></div>
+                                <span>Mon</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 100%"></div>
+                                <span>Tue</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 50%"></div>
+                                <span>Wed</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 65%"></div>
+                                <span>Thu</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 75%"></div>
+                                <span>Fri</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart">
+                        <h3>Est. Calories Burned (kcal)</h3>
+                        <div class="chart-bars">
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 69%"></div>
+                                <span>Sun</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 34%"></div>
+                                <span>Mon</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 84%"></div>
+                                <span>Tue</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 53%"></div>
+                                <span>Wed</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 56%"></div>
+                                <span>Thu</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 61%"></div>
+                                <span>Fri</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart">
+                        <h3>Workout Time (min)</h3>
+                        <div class="chart-bars">
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 88%"></div>
+                                <span>Sun</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 20%"></div>
+                                <span>Mon</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 100%"></div>
+                                <span>Tue</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 30%"></div>
+                                <span>Wed</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 43%"></div>
+                                <span>Thu</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 60%"></div>
+                                <span>Fri</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart">
+                        <h3>Weight Loss Change (kg)</h3>
+                        <div class="chart-bars">
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 88%"></div>
+                                <span>Jan</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 25%"></div>
+                                <span>Feb</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 100%"></div>
+                                <span>Mar</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 45%"></div>
+                                <span>Apr</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar dark-green" style="height: 58%"></div>
+                                <span>May</span>
+                            </div>
+                            <div class="bar-group">
+                                <div class="bar light-green" style="height: 73%"></div>
+                                <span>Jun</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Workout Section -->
+        <section id="workout-section" class="app-section hidden">
+            <div class="workout-content">
+                <h2>AI Workout Session</h2>
+                <p>Choose your exercise and start your AI-powered workout</p>
+                
+                <div class="exercise-selector">
+                    <button class="exercise-btn" onclick="selectExercise('left')">
+                        <i class="fas fa-dumbbell"></i>
+                        Left Arm Curl
+                    </button>
+                    <button class="exercise-btn" onclick="selectExercise('right')">
+                        <i class="fas fa-dumbbell"></i>
+                        Right Arm Curl
+                    </button>
+                    <button class="exercise-btn" onclick="selectExercise('pushup')">
+                        <i class="fas fa-user"></i>
+                        Push-ups
+                    </button>
+                    <button class="exercise-btn" onclick="selectExercise('squat')">
+                        <i class="fas fa-running"></i>
+                        Squats
+                    </button>
+                </div>
+
+                <div class="video-container hidden" id="videoContainer">
+                    <div class="video-header">
+                        <h3 id="exerciseTitle">Exercise</h3>
+                        <button class="close-btn" onclick="closeVideo()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="video-frame">
+                        <img id="videoStream" alt="Live workout stream" />
+                        
+                        <!-- Real-time Form Feedback Panel -->
+                        <div class="form-feedback-panel">
+                            <div class="feedback-header">
+                                <h4><i class="fas fa-eye"></i> Form Analysis</h4>
+                                <div class="form-score">
+                                    <span class="score-label">Score</span>
+                                    <span class="score-value" id="formScore">85%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="feedback-content">
+                                <div class="feedback-item">
+                                    <div class="feedback-icon good">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div class="feedback-text">
+                                        <span class="feedback-label">Arm Position</span>
+                                        <span class="feedback-status">Good form</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="feedback-item">
+                                    <div class="feedback-icon warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div class="feedback-text">
+                                        <span class="feedback-label">Back Alignment</span>
+                                        <span class="feedback-status">Keep straight</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="feedback-item">
+                                    <div class="feedback-icon good">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <div class="feedback-text">
+                                        <span class="feedback-label">Range of Motion</span>
+                                        <span class="feedback-status">Perfect</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-tips">
+                                <h5><i class="fas fa-lightbulb"></i> Tips</h5>
+                                <ul id="formTips">
+                                    <li>Keep your back straight throughout the movement</li>
+                                    <li>Control the descent for better muscle engagement</li>
+                                    <li>Breathe steadily during the exercise</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="workout-controls">
+                        <button class="control-btn" onclick="startWorkout()">
+                            <i class="fas fa-play"></i> Start
+                        </button>
+                        <button class="control-btn" onclick="stopWorkout()">
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                        <button class="control-btn" onclick="resetWorkout()">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                    </div>
+                    
+                    <div class="workout-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Reps:</span>
+                            <span class="stat-value" id="repCount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Calories:</span>
+                            <span class="stat-value" id="calorieCount">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Progress:</span>
+                            <span class="stat-value" id="progressValue">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Other sections will be added here -->
+    </div>
+
+    <!-- Toast Notification System -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <script src="script.js"></script>
 </body>
 </html>
