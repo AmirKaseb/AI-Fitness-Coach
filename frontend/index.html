@@ -400,6 +400,32 @@
                     </button>
                 </div>
 
+                <!-- Demo Video Modal -->
+                <div id="demo-video-modal" class="demo-modal hidden">
+                    <div class="demo-modal-content">
+                        <div class="demo-header">
+                            <h3 id="demo-title">Exercise Demo</h3>
+                            <button class="close-demo-btn" onclick="closeDemoVideo()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="demo-video-container">
+                            <video id="demo-video" controls autoplay>
+                                <source src="" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>
+                        <div class="demo-controls">
+                            <button class="demo-start-btn" onclick="startExerciseAfterDemo()">
+                                <i class="fas fa-play"></i> Start Exercise
+                            </button>
+                            <button class="demo-skip-btn" onclick="skipDemo()">
+                                <i class="fas fa-forward"></i> Skip Demo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="video-container hidden" id="videoContainer">
                     <div class="video-header">
                         <h3 id="exerciseTitle">Exercise</h3>
@@ -410,57 +436,39 @@
                     
                     <div class="video-frame">
                         <img id="videoStream" alt="Live workout stream" />
+                    </div>
+                    
+                    <!-- Clean Feedback Panel at Bottom -->
+                    <div class="bottom-feedback-panel">
+                        <div class="feedback-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Score:</span>
+                                <span class="stat-value" id="formScore">85%</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Reps:</span>
+                                <span class="stat-value" id="repCount">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Calories:</span>
+                                <span class="stat-value" id="calorieCount">0</span>
+                            </div>
+                        </div>
                         
-                        <!-- Real-time Form Feedback Panel -->
-                        <div class="form-feedback-panel">
-                            <div class="feedback-header">
-                                <h4><i class="fas fa-eye"></i> Form Analysis</h4>
-                                <div class="form-score">
-                                    <span class="score-label">Score</span>
-                                    <span class="score-value" id="formScore">85%</span>
-                                </div>
+                        <div class="voice-feedback">
+                            <div class="feedback-message" id="voiceFeedback">
+                                <i class="fas fa-volume-up"></i>
+                                <span id="feedbackText">Ready to start your workout!</span>
                             </div>
-                            
-                            <div class="feedback-content">
-                                <div class="feedback-item">
-                                    <div class="feedback-icon good">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    <div class="feedback-text">
-                                        <span class="feedback-label">Arm Position</span>
-                                        <span class="feedback-status">Good form</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="feedback-item">
-                                    <div class="feedback-icon warning">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                    </div>
-                                    <div class="feedback-text">
-                                        <span class="feedback-label">Back Alignment</span>
-                                        <span class="feedback-status">Keep straight</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="feedback-item">
-                                    <div class="feedback-icon good">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    <div class="feedback-text">
-                                        <span class="feedback-label">Range of Motion</span>
-                                        <span class="feedback-status">Perfect</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="form-tips">
-                                <h5><i class="fas fa-lightbulb"></i> Tips</h5>
-                                <ul id="formTips">
-                                    <li>Keep your back straight throughout the movement</li>
-                                    <li>Control the descent for better muscle engagement</li>
-                                    <li>Breathe steadily during the exercise</li>
-                                </ul>
-                            </div>
+                        </div>
+                        
+                        <div class="form-tips">
+                            <h5><i class="fas fa-lightbulb"></i> Tips</h5>
+                            <ul id="formTips">
+                                <li>Keep your back straight throughout the movement</li>
+                                <li>Control the descent for better muscle engagement</li>
+                                <li>Breathe steadily during the exercise</li>
+                            </ul>
                         </div>
                     </div>
                     
@@ -476,20 +484,210 @@
                         </button>
                     </div>
                     
-                    <div class="workout-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">Reps:</span>
-                            <span class="stat-value" id="repCount">0</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="profile-section" class="app-section hidden">
+            <div class="profile-content">
+                <div class="profile-header">
+                    <h2>My Profile</h2>
+                    <p>Manage your personal information and preferences</p>
+                </div>
+                
+                <div class="profile-grid">
+                    <!-- Profile Information Card -->
+                    <div class="profile-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-user"></i> Personal Information</h3>
+                            <button class="edit-btn" onclick="toggleEditMode('personal')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Calories:</span>
-                            <span class="stat-value" id="calorieCount">0</span>
+                        
+                        <div class="profile-info" id="personalInfo">
+                            <div class="info-item">
+                                <label>Full Name:</label>
+                                <span id="displayName">Loading...</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Email:</label>
+                                <span id="displayEmail">Loading...</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Birth Date:</label>
+                                <span id="displayBirthdate">Loading...</span>
+                            </div>
+                            <div class="info-item">
+                                <label>Gender:</label>
+                                <span id="displayGender">Loading...</span>
+                            </div>
                         </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Progress:</span>
-                            <span class="stat-value" id="progressValue">0%</span>
+                        
+                        <div class="profile-form hidden" id="personalForm">
+                            <form id="updatePersonalForm">
+                                <div class="form-group">
+                                    <label for="updateName">Full Name</label>
+                                    <input type="text" id="updateName" name="name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="updateBirthdate">Birth Date</label>
+                                    <input type="date" id="updateBirthdate" name="birthdate">
+                                </div>
+                                <div class="form-group">
+                                    <label for="updateGender">Gender</label>
+                                    <select id="updateGender" name="gender">
+                                        <option value="">Select Gender</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="save-btn">Save Changes</button>
+                                    <button type="button" class="cancel-btn" onclick="toggleEditMode('personal')">Cancel</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
+                    
+                    <!-- Workout Statistics Card -->
+                    <div class="profile-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-line"></i> Workout Statistics</h3>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-dumbbell"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-number" id="totalWorkouts">0</span>
+                                    <span class="stat-label">Total Workouts</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-fire"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-number" id="totalCalories">0</span>
+                                    <span class="stat-label">Calories Burned</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-number" id="totalTime">0</span>
+                                    <span class="stat-label">Minutes Worked Out</span>
+                                </div>
+                            </div>
+                            
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-number" id="avgScore">0%</span>
+                                    <span class="stat-label">Average Form Score</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Workouts Card -->
+                    <div class="profile-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-history"></i> Recent Workouts</h3>
+                        </div>
+                        
+                        <div class="recent-workouts" id="recentWorkouts">
+                            <div class="workout-item">
+                                <div class="workout-info">
+                                    <span class="workout-type">Loading...</span>
+                                    <span class="workout-date">Loading...</span>
+                                </div>
+                                <div class="workout-stats">
+                                    <span class="workout-reps">Loading...</span>
+                                    <span class="workout-score">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Preferences Card -->
+                    <div class="profile-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-cog"></i> Preferences</h3>
+                            <button class="edit-btn" onclick="toggleEditMode('preferences')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </div>
+                        
+                        <div class="preferences-info" id="preferencesInfo">
+                            <div class="preference-item">
+                                <label>Voice Feedback:</label>
+                                <span id="displayVoiceFeedback">Enabled</span>
+                            </div>
+                            <div class="preference-item">
+                                <label>Workout Reminders:</label>
+                                <span id="displayReminders">Enabled</span>
+                            </div>
+                            <div class="preference-item">
+                                <label>Goal:</label>
+                                <span id="displayGoal">Not Set</span>
+                            </div>
+                        </div>
+                        
+                        <div class="preferences-form hidden" id="preferencesForm">
+                            <form id="updatePreferencesForm">
+                                <div class="form-group">
+                                    <label for="voiceFeedback">Voice Feedback</label>
+                                    <select id="voiceFeedback" name="voice_feedback">
+                                        <option value="enabled">Enabled</option>
+                                        <option value="disabled">Disabled</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="workoutReminders">Workout Reminders</label>
+                                    <select id="workoutReminders" name="workout_reminders">
+                                        <option value="enabled">Enabled</option>
+                                        <option value="disabled">Disabled</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="fitnessGoal">Fitness Goal</label>
+                                    <select id="fitnessGoal" name="fitness_goal">
+                                        <option value="">Select Goal</option>
+                                        <option value="lose-weight">Lose Weight</option>
+                                        <option value="build-strength">Build Strength</option>
+                                        <option value="improve-flexibility">Improve Flexibility</option>
+                                        <option value="general-fitness">General Fitness</option>
+                                    </select>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="save-btn">Save Changes</button>
+                                    <button type="button" class="cancel-btn" onclick="toggleEditMode('preferences')">Cancel</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Account Actions -->
+                <div class="account-actions">
+                    <button class="action-btn danger" onclick="confirmDeleteAccount()">
+                        <i class="fas fa-trash"></i> Delete Account
+                    </button>
+                    <button class="action-btn" onclick="exportData()">
+                        <i class="fas fa-download"></i> Export Data
+                    </button>
                 </div>
             </div>
         </section>

@@ -429,6 +429,7 @@ class AIPoweredCoach {
         }
 
         await this.loadWorkoutHistory();
+        await this.loadProfileData();
         localStorage.setItem('aiCoachUser', JSON.stringify(this.currentUser));
     }
     
@@ -502,6 +503,150 @@ class AIPoweredCoach {
                 bar.style.height = '0%';
             }
         });
+    }
+
+    // Profile Section Functions
+    async loadProfileData() {
+        if (!this.currentUser) return;
+        
+        try {
+            const supabaseClient = getSupabaseClient();
+            if (!supabaseClient) return;
+            
+            // Load user profile data
+            const { data: profile, error: profileError } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('id', this.currentUser.id)
+                .single();
+            
+            if (profile) {
+                this.updateProfileDisplay(profile);
+            }
+            
+            // Load workout statistics
+            const { data: sessions, error: sessionsError } = await supabaseClient
+                .from('workout_sessions')
+                .select('*')
+                .eq('user_id', this.currentUser.id);
+            
+            if (sessions) {
+                this.updateWorkoutStatistics(sessions);
+                this.updateRecentWorkouts(sessions);
+            }
+            
+        } catch (error) {
+            console.error('Error loading profile data:', error);
+        }
+    }
+
+    updateProfileDisplay(profile) {
+        document.getElementById('displayName').textContent = profile.full_name || 'Not set';
+        document.getElementById('displayEmail').textContent = profile.email || 'Not set';
+        document.getElementById('displayBirthdate').textContent = profile.birthdate || 'Not set';
+        document.getElementById('displayGender').textContent = profile.gender || 'Not set';
+        
+        // Update form fields
+        document.getElementById('updateName').value = profile.full_name || '';
+        document.getElementById('updateBirthdate').value = profile.birthdate || '';
+        document.getElementById('updateGender').value = profile.gender || '';
+    }
+
+    updateWorkoutStatistics(sessions) {
+        const totalWorkouts = sessions.length;
+        const totalCalories = sessions.reduce((sum, session) => sum + (session.total_calories || 0), 0);
+        const totalTime = sessions.reduce((sum, session) => sum + (session.duration_minutes || 0), 0);
+        const avgScore = sessions.length > 0 ? 
+            Math.round(sessions.reduce((sum, session) => sum + (session.form_score || 0), 0) / sessions.length) : 0;
+        
+        document.getElementById('totalWorkouts').textContent = totalWorkouts;
+        document.getElementById('totalCalories').textContent = totalCalories;
+        document.getElementById('totalTime').textContent = totalTime;
+        document.getElementById('avgScore').textContent = `${avgScore}%`;
+    }
+
+    updateRecentWorkouts(sessions) {
+        const recentWorkouts = sessions
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+            .slice(0, 5);
+        
+        const container = document.getElementById('recentWorkouts');
+        container.innerHTML = '';
+        
+        if (recentWorkouts.length === 0) {
+            container.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 2rem;">No workouts yet. Start your first workout!</p>';
+            return;
+        }
+        
+        recentWorkouts.forEach(session => {
+            const workoutItem = document.createElement('div');
+            workoutItem.className = 'workout-item';
+            
+            const exerciseType = this.formatExerciseType(session.exercise_type);
+            const date = new Date(session.created_at).toLocaleDateString();
+            
+            workoutItem.innerHTML = `
+                <div class="workout-info">
+                    <span class="workout-type">${exerciseType}</span>
+                    <span class="workout-date">${date}</span>
+                </div>
+                <div class="workout-stats">
+                    <span class="workout-reps">${session.total_reps || 0} reps</span>
+                    <span class="workout-score">${session.form_score || 0}%</span>
+                </div>
+            `;
+            
+            container.appendChild(workoutItem);
+        });
+    }
+
+    formatExerciseType(type) {
+        const typeMap = {
+            'left_arm_curl': 'Left Arm Curl',
+            'right_arm_curl': 'Right Arm Curl',
+            'pushup': 'Push-ups',
+            'squat': 'Squats'
+        };
+        return typeMap[type] || type;
+    }
+
+    async updatePersonalInfo(formData) {
+        try {
+            const supabaseClient = getSupabaseClient();
+            if (!supabaseClient) return false;
+            
+            const { data, error } = await supabaseClient
+                .from('users')
+                .update({
+                    full_name: formData.get('name'),
+                    birthdate: formData.get('birthdate'),
+                    gender: formData.get('gender')
+                })
+                .eq('id', this.currentUser.id)
+                .select()
+                .single();
+            
+            if (error) {
+                console.error('Error updating profile:', error);
+                return false;
+            }
+            
+            // Update current user object
+            this.currentUser = {
+                ...this.currentUser,
+                full_name: data.full_name,
+                birthdate: data.birthdate,
+                gender: data.gender
+            };
+            
+            // Update display
+            this.updateProfileDisplay(data);
+            
+            return true;
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            return false;
+        }
     }
 
     // Navigation Functions
@@ -955,6 +1100,7 @@ let aiCoach;
 
 document.addEventListener('DOMContentLoaded', () => {
     aiCoach = new AIPoweredCoach();
+    initializeVoiceSynthesis();
 });
 
 // Global functions for onclick handlers - work immediately without aiCoach
@@ -1028,7 +1174,99 @@ function startWorkoutFlow() {
 
 
 // Workout Functions
+let currentExerciseType = null;
+let voiceSynthesis = null;
+
+// Initialize voice synthesis
+function initializeVoiceSynthesis() {
+    if ('speechSynthesis' in window) {
+        voiceSynthesis = window.speechSynthesis;
+        
+        // Wait for voices to load
+        if (voiceSynthesis.getVoices().length === 0) {
+            voiceSynthesis.addEventListener('voiceschanged', () => {
+                console.log('Voices loaded:', voiceSynthesis.getVoices().length);
+            });
+        }
+    }
+}
+
+// Speak feedback with female voice
+function speakFeedback(text) {
+    if (!voiceSynthesis) return;
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.8;
+    utterance.pitch = 1.3;
+    utterance.volume = 0.9;
+    
+    // Get all available voices
+    const voices = voiceSynthesis.getVoices();
+    
+    // Comprehensive list of female voice names across different systems
+    const femaleVoiceNames = [
+        'Samantha', 'Karen', 'Victoria', 'Susan', 'Alex', 'Fiona',
+        'Female', 'Woman', 'Girl', 'Samantha (Enhanced)', 'Karen (Enhanced)',
+        'Microsoft Zira Desktop', 'Microsoft Hazel Desktop', 'Microsoft Susan Desktop',
+        'Google UK English Female', 'Google US English Female', 'Google Australian English Female',
+        'Google Canadian English Female', 'Google Indian English Female',
+        'Microsoft Zira - English (United States)', 'Microsoft Hazel - English (Great Britain)',
+        'Microsoft Susan - English (Australia)', 'Microsoft Catherine - English (Canada)',
+        'Microsoft Linda - English (United States)', 'Microsoft Ravi - English (India)',
+        'Samantha (Premium)', 'Karen (Premium)', 'Victoria (Premium)',
+        'Female Voice', 'Woman Voice', 'Girl Voice'
+    ];
+    
+    // Find the best female voice
+    let femaleVoice = voices.find(voice => 
+        femaleVoiceNames.some(name => 
+            voice.name.toLowerCase().includes(name.toLowerCase())
+        )
+    );
+    
+    // If no specific female voice found, try to find any voice that sounds female
+    if (!femaleVoice) {
+        femaleVoice = voices.find(voice => 
+            voice.name.toLowerCase().includes('female') ||
+            voice.name.toLowerCase().includes('woman') ||
+            voice.name.toLowerCase().includes('girl') ||
+            voice.name.toLowerCase().includes('samantha') ||
+            voice.name.toLowerCase().includes('karen') ||
+            voice.name.toLowerCase().includes('victoria') ||
+            voice.name.toLowerCase().includes('susan') ||
+            voice.name.toLowerCase().includes('fiona') ||
+            voice.name.toLowerCase().includes('alex') ||
+            voice.name.toLowerCase().includes('zira') ||
+            voice.name.toLowerCase().includes('hazel')
+        );
+    }
+    
+    // If still no female voice, use a higher pitch to simulate female voice
+    if (femaleVoice) {
+        utterance.voice = femaleVoice;
+        utterance.pitch = 1.2; // Slightly lower pitch for natural female voice
+    } else {
+        utterance.pitch = 1.4; // Higher pitch to simulate female voice
+        utterance.rate = 0.85; // Slightly slower for more feminine sound
+    }
+    
+    // Add some personality to the voice
+    utterance.volume = 0.9;
+    
+    voiceSynthesis.speak(utterance);
+}
+
+// Update voice feedback display
+function updateVoiceFeedback(text) {
+    const feedbackElement = document.getElementById('feedbackText');
+    if (feedbackElement) {
+        feedbackElement.textContent = text;
+    }
+    speakFeedback(text);
+}
+
 function selectExercise(exerciseType) {
+    currentExerciseType = exerciseType;
     const exerciseNames = {
         'left': 'Left Arm Curl',
         'right': 'Right Arm Curl',
@@ -1036,17 +1274,72 @@ function selectExercise(exerciseType) {
         'squat': 'Squats'
     };
     
-    document.getElementById('exerciseTitle').textContent = exerciseNames[exerciseType];
+    // Show demo video first
+    showDemoVideo(exerciseType, exerciseNames[exerciseType]);
+}
+
+function showDemoVideo(exerciseType, exerciseName) {
+    const demoModal = document.getElementById('demo-video-modal');
+    const demoTitle = document.getElementById('demo-title');
+    const demoVideo = document.getElementById('demo-video');
+    
+    demoTitle.textContent = `${exerciseName} Demo`;
+    
+    // Set video source based on exercise type
+    const videoSources = {
+        'left': '../videos/left curl.mp4',
+        'right': '../videos/right curl.mp4',
+        'pushup': '../videos/pushup.mp4',
+        'squat': '../videos/squat.mp4'
+    };
+    
+    demoVideo.src = videoSources[exerciseType];
+    demoModal.classList.remove('hidden');
+    
+    // Speak welcome message
+    updateVoiceFeedback(`Welcome to ${exerciseName}! Watch the demo to learn proper form.`);
+}
+
+function closeDemoVideo() {
+    const demoModal = document.getElementById('demo-video-modal');
+    const demoVideo = document.getElementById('demo-video');
+    
+    demoModal.classList.add('hidden');
+    demoVideo.pause();
+    demoVideo.currentTime = 0;
+}
+
+function startExerciseAfterDemo() {
+    closeDemoVideo();
+    startActualExercise();
+}
+
+function skipDemo() {
+    closeDemoVideo();
+    startActualExercise();
+}
+
+function startActualExercise() {
+    const exerciseNames = {
+        'left': 'Left Arm Curl',
+        'right': 'Right Arm Curl',
+        'pushup': 'Push-ups',
+        'squat': 'Squats'
+    };
+    
+    document.getElementById('exerciseTitle').textContent = exerciseNames[currentExerciseType];
     
     const videoStream = document.getElementById('videoStream');
-    videoStream.src = `http://127.0.0.1:5000/video_feed_${exerciseType}`;
+    videoStream.src = `http://127.0.0.1:5000/video_feed_${currentExerciseType}`;
     
     document.getElementById('videoContainer').classList.remove('hidden');
     
     resetWorkout();
-    initializeFormFeedback(exerciseType);
+    initializeFormFeedback(currentExerciseType);
     
-    ToastNotification.show('info', 'Exercise Selected', `Starting ${exerciseNames[exerciseType]}. Get ready for your workout!`);
+    updateVoiceFeedback(`Great! Now let's start your ${exerciseNames[currentExerciseType]} workout. Get in position and click start when ready!`);
+    
+    ToastNotification.show('info', 'Exercise Selected', `Starting ${exerciseNames[currentExerciseType]}. Get ready for your workout!`);
 }
 
 function closeVideo() {
@@ -1095,6 +1388,9 @@ async function startWorkout() {
         let progress = 0;
         const startTime = Date.now();
         
+        // Voice feedback for workout start
+        updateVoiceFeedback("Workout started! Let's do this! Remember to maintain proper form.");
+        
         const workoutInterval = setInterval(async () => {
             const poseData = await getRealTimePoseData();
             
@@ -1105,15 +1401,27 @@ async function startWorkout() {
                 
                 document.getElementById('repCount').textContent = reps;
                 document.getElementById('calorieCount').textContent = calories;
-                document.getElementById('progressValue').textContent = `${Math.round(progress)}%`;
                 
                 document.getElementById('formScore').textContent = `${Math.round(poseData.form_score)}%`;
+                
+                // Voice feedback for reps
+                if (reps % 3 === 0) {
+                    updateVoiceFeedback(`Great job! You've completed ${reps} reps. Keep going!`);
+                }
+                
+                // Voice feedback for form
+                if (poseData.form_score < 70) {
+                    updateVoiceFeedback("Focus on your form. Keep your back straight and control the movement.");
+                } else if (poseData.form_score > 90) {
+                    updateVoiceFeedback("Excellent form! You're doing great!");
+                }
                 
                 await storePoseAnalysis(session.id, poseData);
                 
                 if (reps >= 12) {
                     clearInterval(workoutInterval);
                     await completeWorkout(session.id, reps, calories, startTime);
+                    updateVoiceFeedback(`Amazing work! You completed ${reps} reps and burned ${calories} calories. Great job!`);
                     ToastNotification.show('success', 'Workout Complete!', `Great job! You completed ${reps} reps and burned ${calories} calories.`);
                 }
             }
@@ -1139,13 +1447,14 @@ function stopWorkout() {
         window.poseAnalysisInterval = null;
     }
     
+    updateVoiceFeedback("Workout paused. Take a break and click start when you're ready to continue.");
     ToastNotification.show('info', 'Workout Paused', 'Your workout has been paused. Click Start to resume.');
 }
 
 function resetWorkout() {
     document.getElementById('repCount').textContent = '0';
     document.getElementById('calorieCount').textContent = '0';
-    document.getElementById('progressValue').textContent = '0%';
+    document.getElementById('formScore').textContent = '85%';
     
     if (window.currentWorkoutInterval) {
         clearInterval(window.currentWorkoutInterval);
@@ -1157,6 +1466,7 @@ function resetWorkout() {
         window.poseAnalysisInterval = null;
     }
     
+    updateVoiceFeedback("Workout reset. Ready for a fresh start!");
     ToastNotification.show('info', 'Workout Reset', 'Workout stats have been reset. Ready for a fresh start!');
 }
 
@@ -1265,6 +1575,16 @@ function updateFeedbackItems(score, exerciseType) {
 
 // Helper functions for real-time workout tracking
 function getCurrentExerciseType() {
+    if (currentExerciseType) {
+        const typeMap = {
+            'left': 'left_arm_curl',
+            'right': 'right_arm_curl',
+            'pushup': 'pushup',
+            'squat': 'squat'
+        };
+        return typeMap[currentExerciseType] || 'unknown';
+    }
+    
     const exerciseTitle = document.getElementById('exerciseTitle').textContent;
     if (exerciseTitle.includes('Left')) return 'left_arm_curl';
     if (exerciseTitle.includes('Right')) return 'right_arm_curl';
@@ -1410,4 +1730,139 @@ function updateFormTipsBasedOnPose(poseData) {
     }
     
     updateFormTips(tips);
+}
+
+// Profile Section Functions
+function toggleEditMode(section) {
+    const infoElement = document.getElementById(`${section}Info`);
+    const formElement = document.getElementById(`${section}Form`);
+    
+    if (infoElement && formElement) {
+        infoElement.classList.toggle('hidden');
+        formElement.classList.toggle('hidden');
+    }
+}
+
+// Handle personal information form submission
+document.addEventListener('DOMContentLoaded', () => {
+    const updatePersonalForm = document.getElementById('updatePersonalForm');
+    if (updatePersonalForm) {
+        updatePersonalForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            if (aiCoach) {
+                const success = await aiCoach.updatePersonalInfo(formData);
+                if (success) {
+                    toggleEditMode('personal');
+                    ToastNotification.show('success', 'Profile Updated', 'Your personal information has been updated successfully!');
+                    updateVoiceFeedback("Profile updated successfully!");
+                } else {
+                    ToastNotification.show('error', 'Update Failed', 'Failed to update profile. Please try again.');
+                }
+            }
+        });
+    }
+    
+    // Handle preferences form submission
+    const updatePreferencesForm = document.getElementById('updatePreferencesForm');
+    if (updatePreferencesForm) {
+        updatePreferencesForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            // Update preferences (you can extend this to save to database)
+            const voiceFeedback = formData.get('voice_feedback');
+            const workoutReminders = formData.get('workout_reminders');
+            const fitnessGoal = formData.get('fitness_goal');
+            
+            // Update display
+            document.getElementById('displayVoiceFeedback').textContent = voiceFeedback === 'enabled' ? 'Enabled' : 'Disabled';
+            document.getElementById('displayReminders').textContent = workoutReminders === 'enabled' ? 'Enabled' : 'Disabled';
+            document.getElementById('displayGoal').textContent = fitnessGoal || 'Not Set';
+            
+            toggleEditMode('preferences');
+            ToastNotification.show('success', 'Preferences Updated', 'Your preferences have been updated successfully!');
+            updateVoiceFeedback("Preferences updated successfully!");
+        });
+    }
+});
+
+function confirmDeleteAccount() {
+    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+        if (confirm('This will permanently delete all your data. Are you absolutely sure?')) {
+            deleteAccount();
+        }
+    }
+}
+
+async function deleteAccount() {
+    try {
+        const supabaseClient = getSupabaseClient();
+        if (!supabaseClient) {
+            ToastNotification.show('error', 'Error', 'Unable to connect to server.');
+            return;
+        }
+        
+        // Delete user data from database
+        await supabaseClient
+            .from('workout_sessions')
+            .delete()
+            .eq('user_id', aiCoach.currentUser.id);
+        
+        await supabaseClient
+            .from('pose_analysis')
+            .delete()
+            .eq('user_id', aiCoach.currentUser.id);
+        
+        await supabaseClient
+            .from('users')
+            .delete()
+            .eq('id', aiCoach.currentUser.id);
+        
+        // Sign out and redirect
+        await supabaseClient.auth.signOut();
+        
+        ToastNotification.show('info', 'Account Deleted', 'Your account has been permanently deleted.');
+        updateVoiceFeedback("Account deleted. Thank you for using our service.");
+        
+        // Redirect to landing page
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        ToastNotification.show('error', 'Error', 'Failed to delete account. Please try again.');
+    }
+}
+
+function exportData() {
+    if (!aiCoach || !aiCoach.currentUser) {
+        ToastNotification.show('error', 'Error', 'No user data available to export.');
+        return;
+    }
+    
+    try {
+        const userData = {
+            user: aiCoach.currentUser,
+            exportDate: new Date().toISOString(),
+            appVersion: '1.0.0'
+        };
+        
+        const dataStr = JSON.stringify(userData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = `gymjam-data-${new Date().toISOString().split('T')[0]}.json`;
+        link.click();
+        
+        ToastNotification.show('success', 'Data Exported', 'Your data has been exported successfully!');
+        updateVoiceFeedback("Data exported successfully!");
+        
+    } catch (error) {
+        console.error('Error exporting data:', error);
+        ToastNotification.show('error', 'Export Failed', 'Failed to export data. Please try again.');
+    }
 }
