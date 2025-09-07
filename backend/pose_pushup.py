@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import PoseModule as pm
+from draw_arrow import up_arrow, down_arrow, colorful_up_arrow, colorful_down_arrow
 
 def pushup():
     cap = cv2.VideoCapture(0)
@@ -15,87 +16,124 @@ def pushup():
     calories = 0
 
     try:
-        with detector.pose:
-            while True:
-                ret, img = cap.read()
-                if not ret or img is None:
-                    break
+        while True:
+            ret, img = cap.read()
+            if not ret or img is None:
+                break
 
-                img = detector.findPose(img, False)
-                lmList = detector.findPosition(img, False)
+            # Resize image to match new implementation
+            img = cv2.resize(img, (1280, 720))
+            img = detector.findPose(img, False)
+            lmList = detector.land_mark_list(img, False)
 
-                if len(lmList) != 0:
-                    # Calculate angles for pushup form
-                    left_arm = detector.findAngle(img, 11, 13, 15)
-                    right_arm = detector.findAngle(img, 12, 14, 16)
-                    left_shoulder = detector.findAngle(img, 13, 11, 23)
-                    right_shoulder = detector.findAngle(img, 14, 12, 24)
+            if len(lmList) != 0:
+                # Find the angle of the Right Elbow (using new implementation)
+                Right_elbow = detector.findAngle(img, 12, 14, 16, height=40, width=-30)
 
-                    # Use average of both arms for consistency
-                    arm_angle = (left_arm + right_arm) / 2
-                    shoulder_angle = (left_shoulder + right_shoulder) / 2
+                # Find the angle of the Right Shoulder
+                Right_Shoulder = detector.findAngle(img, 14, 12, 24, height=40, width=-30, show_angle=False)
 
-                    per = np.interp(arm_angle, (90, 160), (100, 0))
-                    bar = np.interp(arm_angle, (90, 160), (50, 380))
+                # Body alignment
+                Body_angle = detector.findAngle(img, 12, 24, 26, height=50, width=80)
 
-                    # Check if body is in proper plank position
-                    if shoulder_angle > 160:
-                        form = 1
+                # Angle of right knee
+                Knee_angle = detector.findAngle(img, 24, 26, 28, height=50, width=80, show_angle=True)
 
-                    if form == 1:
-                        if per == 0:
-                            if arm_angle > 160 and shoulder_angle > 160:
-                                feedback = "Great! Now lower your body slowly"
-                                feedback_type = "correct"
-                                if direction == 0:
-                                    count += 0.5
-                                    direction = 1
-                                    calories += 4
-                            else:
-                                feedback = "Keep your body straight and lower down"
-                                feedback_type = "incorrect"
+                # Body perfect straight line
+                detector.StraightBodyLine(img, 12, 28)
 
-                        if per == 100:
-                            if arm_angle < 90 and shoulder_angle > 160:
-                                feedback = "Perfect! Now push back up"
-                                feedback_type = "correct"
-                                if direction == 1:
-                                    count += 0.5
-                                    direction = 0
-                                    calories += 4
-                            else:
-                                feedback = "Lower your body more and maintain form"
-                                feedback_type = "incorrect"
-                    else:
-                        feedback = "Get into plank position - keep body straight"
-                        feedback_type = "info"
+                per = np.interp(Right_elbow, (75, 160), (0, 100))
+                bar = np.interp(Right_elbow, (75, 160), (650, 100))
+
+                # Check to ensure right form before starting the program
+                if Right_elbow > 160 and Right_Shoulder > 40 and Body_angle > 160:
+                    form = 1
+                    feedback = "Great form! Ready to start"
+                    feedback_type = "correct"
                 else:
-                    feedback = "No person detected - please step in front of camera"
+                    form = 0
+                    feedback = "Get into proper plank position"
                     feedback_type = "info"
 
-                h, w = img.shape[:2]
-                
-                # Progress bar
-                bar_x1, bar_x2 = max(w - 60, 0), max(w - 40, 20)
-                bar_bottom = min(380, h - 10)
-                bar_top = int(np.clip(bar, 0, bar_bottom)) if 'bar' in locals() else 50
-
+                # Check the direction and counts push up
+                color = (0, 0, 255)
+                # Check for full range of motion for the pushup
                 if form == 1:
-                    # Green progress bar
-                    cv2.rectangle(img, (bar_x1, 50), (bar_x2, bar_bottom), (0, 255, 0), 3)
-                    cv2.rectangle(img, (bar_x1, bar_top), (bar_x2, bar_bottom), (0, 255, 0), cv2.FILLED)
-                    cv2.putText(img, f'{int(per)}%', (max(w - 200, 10), min(230, h - 30)),
-                                cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 0), 2)
+                    if per == 0:
+                        if Right_elbow <= 90 and Body_angle > 160:
+                            feedback = "Up - Great form!"
+                            feedback_type = "correct"
+                            if direction == 0:
+                                count += 0.5
+                                direction = 1
+                                calories += 4
+                        else:
+                            feedback = "Fix Form - Keep body straight"
+                            feedback_type = "incorrect"
 
-                # Count display with animation
-                counter_top = max(h - 120, 0)
-                cv2.rectangle(img, (0, counter_top), (120, h), (0, 255, 0), cv2.FILLED)
-                cv2.putText(img, f'{int(count)}/{target}', (10, min(h - 25, counter_top + 75)),
-                            cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
+                    if per == 100:
+                        if Right_elbow > 160 and Right_Shoulder > 40 and Body_angle > 160:
+                            feedback = "Down - Perfect!"
+                            feedback_type = "correct"
+                            if direction == 1:
+                                count += 0.5
+                                direction = 0
+                                calories += 4
+                        else:
+                            feedback = "Fix Form - Maintain alignment"
+                            feedback_type = "incorrect"
+
+                # Draw the new visual elements
+                up_arrow(img=img)
+                colorful_up_arrow(img=img, percentage=per)
+                cv2.putText(img, f'{int(per)} %', (120, 430), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 4)
+                cv2.putText(img, 'UP', (70, 600), cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 4)
+
+                down_arrow(img=img)
+                colorful_down_arrow(img=img, percentage=100-per)
+                cv2.putText(img, 'DOWN', (1100, 250), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 4)
+                cv2.putText(img, f'{int(100-per)} %', (1050, 430), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 4)
+
+                # Error graph
+                cv2.line(img, (450, 100), (1000, 100), (0, 0, 255), 2)
+
+                error_body_angle = int((180 - Body_angle) * 1.5)
+                error_knee_angle = int((Knee_angle - 180) * 1.5)
+
+                cv2.circle(img, (450, 100), 4, (0, 255, 0), cv2.FILLED)
+                cv2.circle(img, (450, 100), 7, (255, 0, 255), 2)
+
+                cv2.circle(img, (550, 100+error_knee_angle), 4, (0, 255, 0), cv2.FILLED)
+                cv2.circle(img, (550, 100+error_knee_angle), 7, (255, 0, 255), 2)
+
+                cv2.line(img, (450, 100), (550, 100+error_knee_angle), (0, 255, 0), 2)
+
+                cv2.line(img, (550, 100+error_knee_angle), (750, 100-error_body_angle), (0, 255, 0), 2)
+
+                cv2.circle(img, (750, 100-error_body_angle), 4, (0, 255, 0), cv2.FILLED)
+                cv2.circle(img, (750, 100-error_body_angle), 7, (255, 0, 255), 2)
+
+                cv2.circle(img, (1000, 100), 4, (0, 255, 0), cv2.FILLED)
+                cv2.circle(img, (1000, 100), 7, (255, 0, 255), 2)
+
+                cv2.line(img, (750, 100-error_body_angle), (1000, 100), (0, 255, 0), 2)
+
+                # Show the error
+                cv2.rectangle(img, (220, 190), (510, 240), (100, 0, 0), 1)
+                cv2.putText(img, 'Body straight error:     %', (240, 210), cv2.FONT_HERSHEY_PLAIN, 1.1, (0, 100, 0), 2)
+                cv2.putText(img, f'{round(((180 - Body_angle) / 180) * 100)}', (440, 210), cv2.FONT_HERSHEY_PLAIN, 1.1,
+                            (0, 100, 0), 2)
+                cv2.putText(img, 'Knee straight error:     %', (240, 230), cv2.FONT_HERSHEY_PLAIN, 1.1, (0, 100, 0), 2)
+                cv2.putText(img, f'{abs(round(((180 - Knee_angle) / 180) * 100))}', (440, 230), cv2.FONT_HERSHEY_PLAIN, 1,
+                            (0, 100, 0), 2)
+
+                # Draw Push-Up Counter
+                cv2.rectangle(img, (0, 0), (220, 185), (0, 0, 255), cv2.FILLED)
+                cv2.putText(img, str(int(count)), (70, 120), cv2.FONT_HERSHEY_PLAIN, 7, (255, 255, 255), 6)
+                cv2.putText(img, 'Push up', (10, 160), cv2.FONT_HERSHEY_PLAIN, 3, (255, 255, 255), 3)
 
                 # Calories display
-                cv2.putText(img, f'Calories: {calories}', (10, min(h - 60, counter_top + 40)),
-                            cv2.FONT_HERSHEY_PLAIN, 1.5, (255, 255, 255), 2)
+                cv2.putText(img, f'Calories: {calories}', (10, 200), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
 
                 # Feedback display with color coding
                 feedback_color = (0, 255, 0) if feedback_type == "correct" else (0, 0, 255) if feedback_type == "incorrect" else (255, 255, 0)
@@ -103,22 +141,26 @@ def pushup():
 
                 # Form indicator
                 if form == 1:
-                    cv2.putText(img, "FORM: GOOD", (w - 200, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
+                    cv2.putText(img, "FORM: GOOD", (1000, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
                 else:
-                    cv2.putText(img, "FORM: ADJUSTING", (w - 200, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 255), 2)
+                    cv2.putText(img, "FORM: ADJUSTING", (1000, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 255), 2)
 
                 # Target completion indicator
                 if count >= target:
-                    cv2.putText(img, "PUSHUP SET COMPLETED!", (w//2 - 180, h//2), 
+                    cv2.putText(img, "PUSHUP SET COMPLETED!", (400, 360), 
                                 cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 3)
-                    cv2.putText(img, "Incredible strength! You're amazing!", (w//2 - 200, h//2 + 50), 
+                    cv2.putText(img, "Incredible strength! You're amazing!", (350, 410), 
                                 cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
+            else:
+                feedback = "No person detected - please step in front of camera"
+                feedback_type = "info"
+                cv2.putText(img, feedback, (50, 40), cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 0), 2)
 
-                ok, jpeg = cv2.imencode('.jpg', img)
-                if not ok:
-                    continue
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
+            ok, jpeg = cv2.imencode('.jpg', img)
+            if not ok:
+                continue
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
     finally:
         cap.release()
         cv2.destroyAllWindows()
