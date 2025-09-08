@@ -1,0 +1,15 @@
+[phases.setup]
+nixPkgs = ["python39", "opencv", "ffmpeg"]
+
+[phases.install]
+cmds = [
+    "pip install -r backend/requirements.txt"
+]
+
+[phases.build]
+cmds = [
+    "echo 'GymJam AI WebRTC Build complete'"
+]
+
+[start]
+cmd = "cd backend && python app_webrtc.py"

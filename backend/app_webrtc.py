@@ -1,9 +1,10 @@
+"""
+GymJam AI - WebRTC Backend Server
+Clean, production-ready Flask-SocketIO application
+"""
+
 from flask import Flask, render_template, Response, request, redirect, url_for, jsonify
 from flask_socketio import SocketIO, emit
-from pose_left import left_curl
-from pose_right import right_curl
-from pose_pushup import pushup
-from pose_squat import squat
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -11,56 +12,37 @@ import os
 import base64
 import io
 from PIL import Image
+
+# Import clean WebRTC exercise modules
+from exercises.pushup_webrtc import process_pushup_frame
+from exercises.left_curl_webrtc import process_left_curl_frame
+from exercises.right_curl_webrtc import process_right_curl_frame
+from exercises.squat_webrtc import process_squat_frame
+
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
 app = Flask(__name__, static_folder='static')
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'gymjam-ai-secret-key-2024')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Global variables for demo mode
-demo_mode = False
-demo_exercise = None
-
 # Global variables for WebRTC processing
-current_exercise = None
 active_sessions = {}
 
 @app.route('/')
 def home():
+    """Serve the main application page"""
     return render_template('home.html')
 
-@app.route('/api', methods=['GET'])
-def index():
-    return redirect(url_for('home'))
-
-@app.route('/video_feed_left')
-def video_feed_left():
-    return Response(left_curl(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.route('/video_feed_right')
-def video_feed_right():
-    return Response(right_curl(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.route('/video_feed_pushup')
-def video_feed_pushup():
-    return Response(pushup(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.route('/video_feed_squat')
-def video_feed_squat():
-    return Response(squat(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.route('/show')
-def show():
-    subject = request.args.get('sub', '').strip().lower()
-    allowed = {'left', 'right', 'pushup', 'squat'}
-    if subject not in allowed:
-        return redirect(url_for('home'))
-    return redirect(f'/video_feed_{subject}')
+@app.route('/health')
+def health_check():
+    """Health check endpoint for cloud deployment"""
+    return jsonify({
+        'status': 'healthy', 
+        'message': 'GymJam AI WebRTC Backend is running',
+        'active_sessions': len(active_sessions),
+        'version': '1.0.0'
+    })
 
 @app.route('/api/exercise/<exercise_type>')
 def get_exercise_info(exercise_type):
@@ -97,101 +79,12 @@ def get_exercise_info(exercise_type):
     else:
         return jsonify({'error': 'Exercise not found'}), 404
 
-@app.route('/api/demo/start')
-def start_demo():
-    """Start demo mode"""
-    global demo_mode
-    demo_mode = True
-    return jsonify({'status': 'success', 'message': 'Demo mode started'})
-
-@app.route('/api/demo/stop')
-def stop_demo():
-    """Stop demo mode"""
-    global demo_mode
-    demo_mode = False
-    return jsonify({'status': 'success', 'message': 'Demo mode stopped'})
-
-@app.route('/health')
-def health_check():
-    """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'message': 'Backend is running'})
-
-@app.route('/login', methods=['POST'])
-def login():
-    """User login endpoint"""
-    try:
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
-        
-        # For demo purposes, accept any login
-        # In production, you would validate against a database
-        if email and password:
-            return jsonify({
-                'id': 1,
-                'name': 'Demo User',
-                'email': email,
-                'status': 'success'
-            })
-        else:
-            return jsonify({'error': 'Invalid credentials'}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/signup', methods=['POST'])
-def signup():
-    """User signup endpoint"""
-    try:
-        data = request.get_json()
-        fullname = data.get('fullname')
-        email = data.get('email')
-        password = data.get('password')
-        
-        # For demo purposes, accept any signup
-        # In production, you would save to a database
-        if fullname and email and password:
-            return jsonify({
-                'id': 1,
-                'name': fullname,
-                'email': email,
-                'status': 'success'
-            })
-        else:
-            return jsonify({'error': 'Missing required fields'}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/profile', methods=['POST'])
-def profile():
-    """User profile setup endpoint"""
-    try:
-        data = request.get_json()
-        user_id = data.get('user_id')
-        birthdate = data.get('birthdate')
-        name = data.get('name')
-        gender = data.get('gender')
-        
-        # For demo purposes, accept any profile
-        # In production, you would save to a database
-        if user_id and name:
-            return jsonify({
-                'id': user_id,
-                'name': name,
-                'birthdate': birthdate,
-                'gender': gender,
-                'status': 'success'
-            })
-        else:
-            return jsonify({'error': 'Missing required fields'}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 # WebSocket event handlers for WebRTC
 @socketio.on('connect')
 def handle_connect():
     """Handle client connection"""
     print(f"Client connected: {request.sid}")
-    emit('connected', {'message': 'Connected to GymJam AI'})
+    emit('connected', {'message': 'Connected to GymJam AI WebRTC Server'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -257,18 +150,14 @@ def handle_video_frame(data):
 def process_exercise_frame(frame, exercise_type, session_id):
     """Process exercise frame and return feedback"""
     try:
-        # Import the appropriate exercise module
+        # Route to appropriate exercise processor
         if exercise_type == 'pushup':
-            from pose_pushup import process_pushup_frame
             return process_pushup_frame(frame, session_id)
         elif exercise_type == 'left':
-            from pose_left import process_left_curl_frame
             return process_left_curl_frame(frame, session_id)
         elif exercise_type == 'right':
-            from pose_right import process_right_curl_frame
             return process_right_curl_frame(frame, session_id)
         elif exercise_type == 'squat':
-            from pose_squat import process_squat_frame
             return process_squat_frame(frame, session_id)
         else:
             return {'error': 'Unknown exercise type'}
@@ -277,17 +166,15 @@ def process_exercise_frame(frame, exercise_type, session_id):
         print(f"Error in process_exercise_frame: {e}")
         return {'error': str(e)}
 
-
-
 if __name__ == '__main__':
     # Check if running in production
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV') == 'development'
     
-    print("🏋️‍♀️ GymJam AI Fitness Coach Starting...")
+    print("🏋️‍♀️ GymJam AI WebRTC Server Starting...")
     print(f"🌐 Server running on port {port}")
-    print("📱 Open your browser and navigate to the frontend")
+    print("📱 WebRTC enabled for cloud deployment")
     print("🎯 Features: Real-time pose detection, form feedback, progress tracking")
-    print("🔗 WebRTC enabled for cloud deployment")
+    print("🔗 Ready for Railway deployment!")
     
     socketio.run(app, host="0.0.0.0", port=port, debug=debug)

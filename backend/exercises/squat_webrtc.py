@@ -1,132 +1,16 @@
+"""
+GymJam AI - Squat Exercise (WebRTC Version)
+Clean, production-ready WebRTC implementation
+"""
+
 import cv2
-import mediapipe as mp
 import numpy as np
 import PoseModule as pm
 import base64
 import io
 from PIL import Image
 
-def squat():
-    cap = cv2.VideoCapture(0)
-    detector = pm.poseDetector()
-    count = 0
-    direction = 0
-    form = 0
-    feedback = "Stand straight with feet shoulder-width apart"
-    feedback_type = "info"
-    target = 15
-    calories = 0
 
-    try:
-        with detector.pose:
-            while True:
-                ret, img = cap.read()
-                if not ret or img is None:
-                    break
-
-                img = detector.findPose(img, False)
-                lmList = detector.findPosition(img, False)
-
-                if len(lmList) != 0:
-                    # Calculate angles for squat form
-                    left_knee = detector.findAngle(img, 23, 25, 27)
-                    right_knee = detector.findAngle(img, 24, 26, 28)
-                    left_hip = detector.findAngle(img, 11, 23, 25)
-                    right_hip = detector.findAngle(img, 12, 24, 26)
-
-                    # Use average of both sides for consistency
-                    knee_angle = (left_knee + right_knee) / 2
-                    hip_angle = (left_hip + right_hip) / 2
-
-                    per = np.interp(knee_angle, (160, 90), (100, 0))
-                    bar = np.interp(knee_angle, (160, 90), (50, 380))
-
-                    # Check if body is in proper standing position
-                    if hip_angle > 160:
-                        form = 1
-
-                    if form == 1:
-                        if per == 0:
-                            if knee_angle > 160 and hip_angle > 160:
-                                feedback = "Perfect! Now squat down slowly"
-                                feedback_type = "correct"
-                                if direction == 0:
-                                    count += 0.5
-                                    direction = 1
-                                    calories += 5
-                            else:
-                                feedback = "Keep your back straight and squat down"
-                                feedback_type = "incorrect"
-
-                        if per == 100:
-                            if knee_angle < 90 and hip_angle > 160:
-                                feedback = "Excellent form! Now stand back up"
-                                feedback_type = "correct"
-                                if direction == 1:
-                                    count += 0.5
-                                    direction = 0
-                                    calories += 5
-                            else:
-                                feedback = "Squat deeper and maintain posture"
-                                feedback_type = "incorrect"
-                    else:
-                        feedback = "Stand straight and prepare for squat"
-                        feedback_type = "info"
-                else:
-                    feedback = "No person detected - please step in front of camera"
-                    feedback_type = "info"
-
-                h, w = img.shape[:2]
-                
-                # Progress bar
-                bar_x1, bar_x2 = max(w - 60, 0), max(w - 40, 20)
-                bar_bottom = min(380, h - 10)
-                bar_top = int(np.clip(bar, 0, bar_bottom)) if 'bar' in locals() else 50
-
-                if form == 1:
-                    # Green progress bar
-                    cv2.rectangle(img, (bar_x1, 50), (bar_x2, bar_bottom), (0, 255, 0), 3)
-                    cv2.rectangle(img, (bar_x1, bar_top), (bar_x2, bar_bottom), (0, 255, 0), cv2.FILLED)
-                    cv2.putText(img, f'{int(per)}%', (max(w - 200, 10), min(230, h - 30)),
-                                cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 0), 2)
-
-                # Count display with animation
-                counter_top = max(h - 120, 0)
-                cv2.rectangle(img, (0, counter_top), (120, h), (0, 255, 0), cv2.FILLED)
-                cv2.putText(img, f'{int(count)}/{target}', (10, min(h - 25, counter_top + 75)),
-                            cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
-
-                # Calories display
-                cv2.putText(img, f'Calories: {calories}', (10, min(h - 60, counter_top + 40)),
-                            cv2.FONT_HERSHEY_PLAIN, 1.5, (255, 255, 255), 2)
-
-                # Feedback display with color coding
-                feedback_color = (0, 255, 0) if feedback_type == "correct" else (0, 0, 255) if feedback_type == "incorrect" else (255, 255, 0)
-                cv2.putText(img, feedback, (50, 40), cv2.FONT_HERSHEY_PLAIN, 2, feedback_color, 2)
-
-                # Form indicator
-                if form == 1:
-                    cv2.putText(img, "FORM: GOOD", (w - 200, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 2)
-                else:
-                    cv2.putText(img, "FORM: ADJUSTING", (w - 200, 40), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 255), 2)
-
-                # Target completion indicator
-                if count >= target:
-                    cv2.putText(img, "SQUAT SET COMPLETED!", (w//2 - 180, h//2), 
-                                cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 3)
-                    cv2.putText(img, "Fantastic leg work! You're unstoppable!", (w//2 - 200, h//2 + 50), 
-                                cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
-
-                ok, jpeg = cv2.imencode('.jpg', img)
-                if not ok:
-                    continue
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + jpeg.tobytes() + b'\r\n\r\n')
-    finally:
-        cap.release()
-        cv2.destroyAllWindows()
-
-# WebRTC-compatible function for processing individual frames
 def process_squat_frame(frame, session_id):
     """Process a single frame for squat detection and return feedback"""
     # Import active_sessions from app module
@@ -139,8 +23,7 @@ def process_squat_frame(frame, session_id):
     
     detector = pm.poseDetector()
     
-    # Resize frame to match original implementation
-    frame = cv2.resize(frame, (1280, 720))
+    # Keep frame at smaller size for faster processing (already resized in app.py)
     frame = detector.findPose(frame, False)
     lmList = detector.findPosition(frame, False)
     
@@ -239,8 +122,8 @@ def process_squat_frame(frame, session_id):
             cv2.putText(frame, "Excellent leg workout!", (350, 410), 
                         cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
         
-        # Convert processed frame back to base64 for sending to client
-        _, buffer = cv2.imencode('.jpg', frame)
+        # Convert processed frame back to base64 for sending to client (lower quality for speed)
+        _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
         frame_base64 = base64.b64encode(buffer).decode('utf-8')
         result['processed_frame'] = f"data:image/jpeg;base64,{frame_base64}"
         
