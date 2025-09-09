@@ -1,9 +1,9 @@
 [phases.setup]
-nixPkgs = ["python39", "opencv", "ffmpeg"]
+nixPkgs = ["python311", "opencv", "ffmpeg"]
 
 [phases.install]
 cmds = [
-    "pip install -r backend/requirements.txt"
+    "python -m pip install -r backend/requirements.txt"
 ]
 
 [phases.build]

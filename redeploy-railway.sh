@@ -1,23 +1,22 @@
 #!/bin/bash
 
-echo "🚀 Redeploying GymJam AI to Railway..."
+# GymJam AI WebRTC Railway Deployment Script
+echo "🚀 Starting GymJam AI WebRTC deployment to Railway..."
 
-# Remove Dockerfile to force Nixpacks
-echo "📁 Removing Dockerfile to force Nixpacks usage..."
-rm -f Dockerfile
+# Check if railway CLI is installed
+if ! command -v railway &> /dev/null; then
+    echo "❌ Railway CLI not found. Please install it first:"
+    echo "npm install -g @railway/cli"
+    exit 1
+fi
 
-# Add all changes
-echo "📦 Adding all changes..."
-git add .
+# Login to Railway (if not already logged in)
+echo "🔐 Checking Railway authentication..."
+railway whoami || railway login
 
-# Commit changes
-echo "💾 Committing changes..."
-git commit -m "Fix Railway deployment - use Nixpacks instead of Docker"
+# Deploy to Railway
+echo "📦 Deploying to Railway..."
+railway up
 
-# Push to GitHub
-echo "🚀 Pushing to GitHub..."
-git push origin main
-
-echo "✅ Deployment triggered! Railway will now use Nixpacks instead of Docker."
-echo "🔗 Check your Railway dashboard for deployment progress."
-echo "📱 Your app will be available at: https://your-app-name.railway.app"
+echo "✅ Deployment initiated! Check your Railway dashboard for progress."
+echo "🌐 Your app will be available at: https://web-production-4229e.up.railway.app"
