@@ -1271,7 +1271,8 @@ function selectExercise(exerciseType) {
         'left': 'Left Arm Curl',
         'right': 'Right Arm Curl',
         'pushup': 'Push-ups',
-        'squat': 'Squats'
+        'squat': 'Squats',
+        'frontkick': 'Front Kicks'
     };
     
     // Show demo video first
@@ -1290,7 +1291,8 @@ function showDemoVideo(exerciseType, exerciseName) {
         'left': '../videos/left curl.mp4',
         'right': '../videos/right curl.mp4',
         'pushup': '../videos/pushup.mp4',
-        'squat': '../videos/squat.mp4'
+        'squat': '../videos/squat.mp4',
+        'frontkick': '../videos/front kick.mp4'
     };
     
     demoVideo.src = videoSources[exerciseType];
@@ -1351,10 +1353,30 @@ function closeVideo() {
     resetWorkout();
 }
 
+function startWorkoutSession() {
+    // Start workout session without Supabase
+    currentWorkoutSession = {
+        id: 'local_' + Date.now(),
+        startTime: Date.now(),
+        reps: 0,
+        calories: 0
+    };
+    
+    document.getElementById('videoContainer').classList.remove('hidden');
+    updateVoiceFeedback('Front kick exercise started! Get in position and start kicking!');
+    ToastNotification.show('success', 'Workout Started', 'Front kick exercise is now active!');
+}
+
 async function startWorkout() {
     try {
         const supabaseClient = getSupabaseClient();
         if (!supabaseClient) {
+            // For front kick exercise, allow workout without Supabase
+            if (currentExerciseType === 'frontkick') {
+                ToastNotification.show('info', 'Starting Front Kick Exercise', 'Workout will run in offline mode.');
+                startWorkoutSession();
+                return;
+            }
             ToastNotification.show('error', 'Connection Error', 'Unable to start workout. Please try again.');
             return;
         }
@@ -1502,6 +1524,12 @@ function getExerciseTips(exerciseType) {
             'Lower until thighs are parallel to ground',
             'Keep your chest up and back straight',
             'Push through your heels when rising'
+        ],
+        'frontkick': [
+            'Lift your leg to hip level (40-70° angle)',
+            'Keep your knee straight (160-180° angle)',
+            'Maintain balance on your supporting leg',
+            'Keep your core engaged throughout the kick'
         ]
     };
     

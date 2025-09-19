@@ -111,7 +111,7 @@ while True:
                     (0, 100, 0), 2)
 
         # Draw Push-Up Counter
-        cv2.rectangle(img, (0, 0), (220, 185), (0, 0, 255), cv2.FILLED)
+        cv2.rectangle(img, (0, 0), (220, 185), (0, 100, 0), cv2.FILLED)
         cv2.putText(img, str(int(count)), (70, 120), cv2.FONT_HERSHEY_PLAIN, 7, (255, 255, 255), 6)
         cv2.putText(img, 'Push up', (10, 160), cv2.FONT_HERSHEY_PLAIN, 3, (255, 255, 255), 3)
 

@@ -9,6 +9,7 @@ import PoseModule as pm
 import base64
 import io
 from PIL import Image
+from draw_arrow import up_arrow, down_arrow, colorful_up_arrow, colorful_down_arrow
 
 
 def process_left_curl_frame(frame, session_id):
@@ -84,13 +85,52 @@ def process_left_curl_frame(frame, session_id):
                     result['feedback'] = "Fix Form - Maintain position"
                     result['feedback_type'] = "incorrect"
         
-        # Draw progress bar
-        cv2.rectangle(frame, (1100, 100), (1175, 650), (0, 0, 0), 3)
-        cv2.rectangle(frame, (1100, int(bar)), (1175, 650), (0, 255, 0), cv2.FILLED)
-        cv2.putText(frame, f'{int(per)}%', (1100, 75), cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 3)
-        
-        # Draw curl counter
-        cv2.rectangle(frame, (0, 0), (220, 185), (0, 0, 255), cv2.FILLED)
+        # Draw visual elements with arrows (same style as AI_trainer.py)
+        up_arrow(img=frame)
+        colorful_up_arrow(img=frame, percentage=per)
+        cv2.putText(frame, f'{int(per)} %', (120, 430), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 0), 4)
+        cv2.putText(frame, 'UP', (70, 600), cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 4)
+
+        down_arrow(img=frame)
+        colorful_down_arrow(img=frame, percentage=100-per)
+        cv2.putText(frame, 'DOWN', (1100, 250), cv2.FONT_HERSHEY_PLAIN, 3, (0, 0, 255), 4)
+        cv2.putText(frame, f'{int(100-per)} %', (1050, 430), cv2.FONT_HERSHEY_PLAIN, 2, (0, 0, 255), 4)
+
+        # Error graph (similar to AI_trainer.py)
+        cv2.line(frame, (450, 100), (1000, 100), (0, 0, 255), 2)
+
+        error_elbow_angle = int((elbow - 105) * 1.5)  # 105 is middle of 50-160 range
+        error_shoulder_angle = int((shoulder - 40) * 1.5)
+
+        cv2.circle(frame, (450, 100), 4, (0, 255, 0), cv2.FILLED)
+        cv2.circle(frame, (450, 100), 7, (255, 0, 255), 2)
+
+        cv2.circle(frame, (550, 100+error_elbow_angle), 4, (0, 255, 0), cv2.FILLED)
+        cv2.circle(frame, (550, 100+error_elbow_angle), 7, (255, 0, 255), 2)
+
+        cv2.line(frame, (450, 100), (550, 100+error_elbow_angle), (0, 255, 0), 2)
+
+        cv2.line(frame, (550, 100+error_elbow_angle), (750, 100-error_shoulder_angle), (0, 255, 0), 2)
+
+        cv2.circle(frame, (750, 100-error_shoulder_angle), 4, (0, 255, 0), cv2.FILLED)
+        cv2.circle(frame, (750, 100-error_shoulder_angle), 7, (255, 0, 255), 2)
+
+        cv2.circle(frame, (1000, 100), 4, (0, 255, 0), cv2.FILLED)
+        cv2.circle(frame, (1000, 100), 7, (255, 0, 255), 2)
+
+        cv2.line(frame, (750, 100-error_shoulder_angle), (1000, 100), (0, 255, 0), 2)
+
+        # Show the error
+        cv2.rectangle(frame, (220, 190), (510, 240), (100, 0, 0), 1)
+        cv2.putText(frame, 'Elbow angle error:     %', (240, 210), cv2.FONT_HERSHEY_PLAIN, 1.1, (0, 100, 0), 2)
+        cv2.putText(frame, f'{round(abs(elbow - 105) / 55 * 100)}', (440, 210), cv2.FONT_HERSHEY_PLAIN, 1.1,
+                    (0, 100, 0), 2)
+        cv2.putText(frame, 'Shoulder angle error:     %', (240, 230), cv2.FONT_HERSHEY_PLAIN, 1.1, (0, 100, 0), 2)
+        cv2.putText(frame, f'{abs(round((shoulder - 40) / 20 * 100))}', (440, 230), cv2.FONT_HERSHEY_PLAIN, 1,
+                    (0, 100, 0), 2)
+
+        # Draw Left Curl Counter (same style as AI_trainer.py)
+        cv2.rectangle(frame, (0, 0), (220, 185), (0, 100, 0), cv2.FILLED)
         current_count = active_sessions.get(session_id, {}).get('count', 0)
         cv2.putText(frame, str(int(current_count)), (70, 120), cv2.FONT_HERSHEY_PLAIN, 7, (255, 255, 255), 6)
         cv2.putText(frame, 'Left Curl', (10, 160), cv2.FONT_HERSHEY_PLAIN, 3, (255, 255, 255), 3)

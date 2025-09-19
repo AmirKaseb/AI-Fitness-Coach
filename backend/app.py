@@ -4,6 +4,7 @@ from pose_left import left_curl
 from pose_right import right_curl
 from pose_pushup import pushup
 from pose_squat import squat
+from exercises.front_kick_webrtc import process_front_kick_frame
 import cv2
 import mediapipe as mp
 import numpy as np
@@ -11,8 +12,35 @@ import os
 import base64
 import io
 from PIL import Image
+import PoseModule as pm
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
+
+def front_kick():
+    """Front kick exercise generator"""
+
+    cap = cv2.VideoCapture(0)
+    detector = pm.poseDetector()
+    
+    while True:
+        success, img = cap.read()
+        if not success:
+            break
+            
+        img = cv2.resize(img, (1280, 720))
+        img = detector.findPose(img, False)
+        lmList = detector.findPosition(img, False)
+        
+        if len(lmList) != 0:
+            # Process the frame using the WebRTC function
+            result = process_front_kick_frame(img, "default_session")
+            # The processed frame is already in the result, but we need to return it as a generator
+            ret, buffer = cv2.imencode('.jpg', img)
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    
+    cap.release()
 
 app = Flask(__name__, static_folder='static')
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -29,6 +57,16 @@ active_sessions = {}
 @app.route('/')
 def home():
     return render_template('home.html')
+
+@app.route('/webrtc')
+def webrtc():
+    """Serve the WebRTC interface"""
+    return render_template('webrtc.html')
+
+@app.route('/webrtc-demo')
+def webrtc_demo():
+    """Serve the WebRTC demo interface"""
+    return render_template('webrtc_demo.html')
 
 @app.route('/api', methods=['GET'])
 def index():
@@ -52,6 +90,11 @@ def video_feed_pushup():
 @app.route('/video_feed_squat')
 def video_feed_squat():
     return Response(squat(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/video_feed_frontkick')
+def video_feed_frontkick():
+    return Response(front_kick(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/show')
@@ -262,13 +305,13 @@ def process_exercise_frame(frame, exercise_type, session_id):
             from pose_pushup import process_pushup_frame
             return process_pushup_frame(frame, session_id)
         elif exercise_type == 'left':
-            from pose_left import process_left_curl_frame
+            from exercises.left_curl_webrtc import process_left_curl_frame
             return process_left_curl_frame(frame, session_id)
         elif exercise_type == 'right':
-            from pose_right import process_right_curl_frame
+            from exercises.right_curl_webrtc import process_right_curl_frame
             return process_right_curl_frame(frame, session_id)
         elif exercise_type == 'squat':
-            from pose_squat import process_squat_frame
+            from exercises.squat_webrtc import process_squat_frame
             return process_squat_frame(frame, session_id)
         else:
             return {'error': 'Unknown exercise type'}
